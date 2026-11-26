@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>藥品調撥分析｜月結算觀測</title>
+  <link rel="stylesheet" href="style.css?v=single-sheet-20261126">
+  <script src="vendor/exceljs.min.js" defer></script>
+  <script type="module" src="app.js?v=single-sheet-20261126"></script>
+</head>
+<body>
+  <a class="skip" href="#main">跳至分析內容</a>
+  <header class="topbar"><div class="brand"><span class="brand-icon" aria-hidden="true">✚</span><strong>藥品調撥分析</strong><span class="preview-badge">本機試作</span></div><span class="source">月結算資料 <span id="coverage">載入中</span></span></header>
+  <main id="main">
+    <div class="page-heading"><div><h1>藥庫調藥 · 月結算觀測</h1><p class="intro">選擇月份與品項，檢視區間調藥次數及月別明細。</p></div><div class="period-stamp"><span>目前分析區間</span><strong id="period-label">—</strong></div></div>
+    <search aria-label="分析條件">
+      <form id="filters" class="filters">
+        <div class="field"><label for="start">起始月份</label><select id="start" name="start" required disabled></select></div>
+        <div class="field"><label for="end">結束月份</label><select id="end" name="end" required disabled></select></div>
+        <div class="field product-field"><span id="product-label" class="field-label">藥品品項</span><details id="product-picker"><summary id="product-summary">全部品項</summary><div class="picker-panel"><label for="product-search">搜尋藥品名稱或代碼</label><input id="product-search" type="search" autocomplete="off" spellcheck="false" placeholder="輸入名稱或代碼"><div class="picker-toolbar"><span id="selection-count">未限定品項</span><button type="button" id="clear-products">清除選取</button></div><div id="product-options" class="product-options"></div></div></details></div>
+        <fieldset class="count-field"><legend>每月調藥次數</legend><div class="count-inputs"><label class="sr-only" for="minimum">每月次數下限</label><input id="minimum" name="minimum" type="number" min="1" max="50" step="1" value="1" required><span>至</span><label class="sr-only" for="maximum">每月次數上限</label><input id="maximum" name="maximum" type="number" min="1" max="50" step="1" value="10" required></div></fieldset>
+        <div class="filter-actions"><button type="submit" class="primary" id="apply" disabled>套用條件</button><button type="button" id="reset">重設</button></div>
+        <p id="filter-error" class="filter-error" role="alert"></p>
+        <p id="filter-notice" class="filter-notice"></p>
+      </form>
+    </search>
+    <div class="viewbar"><nav aria-label="資料頁面"><a href="#overview" id="overview-link" aria-current="page">分布總覽</a><a href="#details" id="details-link">月別明細 <span id="detail-count">0</span></a></nav><span id="filter-description">正在讀取資料庫</span></div>
+    <p id="status" class="sr-only" role="status"></p>
+    <div id="fatal" class="fatal" role="alert" hidden></div>
+    <section id="overview" aria-labelledby="chart-title">
+      <div class="summary-line"><div><span>調藥總次數</span><strong id="total">—</strong><small>次</small></div><div><span>符合品項</span><strong id="matched">—</strong><small>項</small></div><div><span>紀錄筆數</span><strong id="matched-total">—</strong><small>筆</small></div><div class="summary-note">占比的分母為<br>篩選後月結算紀錄總筆數</div></div>
+      <div class="chart-panel">
+        <div class="section-heading"><div><h2 id="chart-title">調藥次數分布</h2><p>依篩選後的月結算紀錄分類，超過 5 次歸入「其他」。</p></div></div>
+        <div class="chart-layout"><div class="pie-area"><svg id="pie" viewBox="0 0 440 440" role="img" aria-labelledby="pie-title pie-description"><title id="pie-title">調藥次數圓餅圖</title><desc id="pie-description">資料載入中</desc></svg><p id="pie-caption">點選次數分類，查看月別明細。</p></div><div class="legend-area"><div class="legend-head"><span>每月調藥次數分類</span><span>分類筆數 / 占比</span></div><div id="legend"></div><div id="empty" class="empty" hidden><strong>沒有符合條件的月結算紀錄</strong><p>請調整月份、品項或每月次數；無符合資料時不計算百分比。</p></div><p class="other-note">分類占比＝該類月結算筆數 ÷ 篩選後總筆數；不以調藥次數加權。「其他」只包含篩選後每月超過 5 次的紀錄。</p></div></div>
+      </div>
+      <div class="footnotes"><p><strong>資料範圍</strong> 僅含調藥次數大於 0 的月結算紀錄；未收錄紀錄不視為零。</p></div>
+    </section>
+    <section id="details" aria-labelledby="detail-title" hidden>
+      <div class="section-heading"><div><h2 id="detail-title">月別調藥明細</h2><p id="detail-description">依目前篩選條件呈現原始月結算紀錄。</p></div><div class="detail-actions"><button type="button" id="clear-focus" hidden>顯示全部符合品項</button><button type="button" id="download-xlsx" class="primary" disabled>下載 Excel</button></div></div>
+      <p id="export-status" class="export-status" role="status"></p>
+      <p class="table-hint">基準量、安全量保留各月份設定值，不跨月加總。點選欄位名稱可排序。</p>
+      <div class="table-wrap" role="region" aria-label="月結算資料表，可水平捲動" tabindex="0"><table><caption class="sr-only">符合篩選品項的月結算資料</caption><thead><tr id="table-head"></tr></thead><tbody id="table-body"></tbody></table></div>
+      <div class="pagination"><span id="page-label"></span><div><button type="button" id="prev">上一頁</button><button type="button" id="next">下一頁</button></div></div>
+    </section>
+    <footer><span>月結算分析 · 本機預覽</span><span id="data-info">資料來源：stock_transfer.db</span></footer>
+  </main>
+  <dialog id="export-dialog" aria-labelledby="export-title">
+    <form id="export-form">
+      <h2 id="export-title">儲存 Excel 檔案</h2>
+      <p id="export-scope"></p>
+      <div id="local-save-options">
+        <label for="export-destination">儲存位置</label>
+        <select id="export-destination"><option value="desktop">桌面</option><option value="downloads">下載項目</option><option value="custom">自訂資料夾路徑</option></select>
+        <label for="export-folder">資料夾完整路徑</label>
+        <input id="export-folder" type="text" spellcheck="false" autocomplete="off" required>
+        <label class="overwrite-option"><input id="export-overwrite" type="checkbox">取代同名檔案</label><p class="save-hint">未勾選時，同名檔案會自動加上編號，保留原檔。</p>
+      </div>
+      <p id="browser-save-note" hidden>支援的瀏覽器會開啟儲存位置選擇視窗，其餘使用瀏覽器下載設定。</p>
+      <label for="export-filename">檔案名稱</label>
+      <input id="export-filename" type="text" required spellcheck="false" autocomplete="off">
+      <p id="export-error" role="alert"></p>
+      <div class="save-actions"><button type="button" id="export-cancel">取消</button><button type="submit" id="export-save" class="primary">儲存 .xlsx</button></div>
+    </form>
+  </dialog>
+  <noscript>本頁需要 JavaScript 才能讀取 SQLite 及顯示分析。</noscript>
+</body>
+</html>
